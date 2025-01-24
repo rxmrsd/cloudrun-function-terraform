@@ -40,6 +40,28 @@ resource "google_project_service" "required_apis" {
   disable_on_destroy        = false
 }
 
+resource "google_project_iam_member" "cloud_build_roles" {
+  for_each = toset([
+    "roles/cloudbuild.builds.builder",
+    "roles/run.admin",
+    "roles/artifactregistry.reader",
+    "roles/run.invoker",
+    "roles/run.developer",
+    "roles/iam.serviceAccountUser",
+  ])
+  project = var.project_id
+  role    = each.key
+  member  = "serviceAccount:${var.service_account_name}@${var.project_id}.iam.gserviceaccount.com"
+}
+
+module "artifact_registry" {
+  source = "../../modules/artifact_registry"
+
+  project_id = var.project_id
+  location = var.region
+  repository_name = var.service_name
+}
+
 module "cloud_build" {
   source = "../../modules/cloud_build"
 
@@ -54,7 +76,9 @@ module "cloud_build" {
   substitutions        = var.substitutions
 
   depends_on = [
-    google_project_service.required_apis
+    google_project_service.required_apis,
+    google_project_iam_member.cloud_build_roles,
+    module.artifact_registry,
   ]
 }
 
@@ -82,7 +106,8 @@ module "backend_service" {
   ingress = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   depends_on = [ 
-    module.vpc_network
+    module.vpc_network,
+    module.cloud_build,
   ]
 }
 
