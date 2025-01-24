@@ -34,11 +34,6 @@ variable "min_instances" {
   default     = 1
 }
 
-variable "cloudsql_instance" {
-  description = "Cloud SQL instance to connect"
-  type        = string
-}
-
 variable "network_name" {
   description = "VPC network"
   type        = string

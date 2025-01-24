@@ -1,0 +1,18 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "-t"
+      - "asia-northeast1-docker.pkg.dev/${PROJECT_ID}/${_SERVICE_NAME}/${_COMPONENT_NAME}:${_TAG}"
+      - "-f"
+      - "${_COMPONENT_NAME}/Dockerfile"
+      - "${_COMPONENT_NAME}/"
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "asia-northeast1-docker.pkg.dev/${PROJECT_ID}/${_SERVICE_NAME}/${_COMPONENT_NAME}:${_TAG}"
+images:
+  - "asia-northeast1-docker.pkg.dev/${PROJECT_ID}/${_SERVICE_NAME}/${_COMPONENT_NAME}:${_TAG}"
+service_account: "projects/${PROJECT_ID}/serviceAccounts/${_SERVICE_ACCOUNT}"
+options:
+  logging: CLOUD_LOGGING_ONLY
