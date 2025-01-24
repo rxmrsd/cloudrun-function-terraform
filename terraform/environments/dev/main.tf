@@ -101,6 +101,7 @@ module "cloud_function_v2" {
   timeout_seconds     = 60
   iam_role            = "roles/run.invoker"
   iam_member          = "allUsers"
+  backend_url         = module.backend_service.service_url
 
   depends_on = [ 
     module.backend_service

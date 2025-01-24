@@ -30,6 +30,9 @@ resource "google_cloudfunctions2_function" "default" {
   build_config {
     runtime     = var.runtime
     entry_point = var.entry_point
+    environment_variables = {
+      BACKEND_URL = var.backend_url
+    }
     source {
       storage_source {
         bucket = google_storage_bucket.default.name

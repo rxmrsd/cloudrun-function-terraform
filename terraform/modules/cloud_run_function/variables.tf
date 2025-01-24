@@ -69,3 +69,8 @@ variable "iam_member" {
   description = "IAM member to assign to the Cloud Function."
   type        = string
 }
+
+variable "backend_url" {
+  description = "backend url"
+  type        = string
+}
