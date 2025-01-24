@@ -1,32 +1,49 @@
 """main.py"""
+import os
+import logging
 import requests
+from flask import jsonify
 
 from src.constants import BACKEND_URL
+
+# ロギングの設定
+logging.basicConfig(level=logging.INFO)
 
 
 def check_backend_health(request):
     """
-    Google Cloud Function: Cloud Runのヘルスチェックを実行します。
+    Google Cloud Function: Cloud Runのヘルスチェックを実行
     """
+    if not BACKEND_URL:
+        logging.error("BACKEND_URL environment variable is not set")
+        return jsonify({"status": "error", "message": "Configuration error"}), 500
+
     try:
-        # Cloud RunのヘルスチェックエンドポイントにGETリクエストを送信
-        response = requests.get(BACKEND_URL + "/health")
+        # タイムアウト設定を追加
+        response = requests.get(f"{BACKEND_URL}/health", timeout=10)
         response.raise_for_status()
 
-        return {
+        return jsonify({
             "status": "success",
-            "response": response.json(),
-        }
+            "response": response.json()
+        }), 200
+
     except requests.exceptions.RequestException as e:
-        return {
+        logging.error(f"Request failed: {str(e)}")
+        return jsonify({
             "status": "error",
-            "error": str(e),
-        }
+            "message": f"Backend connection error: {str(e)}"
+        }), 502
 
-
-def main() -> None:
-    return check_backend_health()
+    except Exception as e:
+        logging.error(f"Unexpected error: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": "Internal server error"
+        }), 500
 
 
 if __name__ == "__main__":
-    main()
+    os.environ["BACKEND_URL"] = "http://localhost:8080"
+    test_response = check_backend_health(None)
+    print(test_response)
