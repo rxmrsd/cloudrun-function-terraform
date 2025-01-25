@@ -30,9 +30,6 @@ resource "google_cloudfunctions2_function" "default" {
   build_config {
     runtime     = var.runtime
     entry_point = var.entry_point
-    environment_variables = {
-      BACKEND_URL = var.backend_url
-    }
     source {
       storage_source {
         bucket = google_storage_bucket.default.name
@@ -45,6 +42,9 @@ resource "google_cloudfunctions2_function" "default" {
     max_instance_count = var.max_instance_count
     available_memory   = var.available_memory
     timeout_seconds    = var.timeout_seconds
+    environment_variables = {
+      BACKEND_URL = var.backend_url
+    }
   }
 }
 
