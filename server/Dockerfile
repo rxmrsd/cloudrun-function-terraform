@@ -15,7 +15,6 @@ ENV PATH="/root/.local/bin/:$PATH" \
 
 WORKDIR /workspace
 COPY pyproject.toml uv.lock ./
-COPY ./libs/hoge-lib /workspace/libs/hoge-lib
 RUN uv sync --frozen --no-dev --no-editable
 
 ##########################################
