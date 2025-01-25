@@ -48,6 +48,7 @@ resource "google_project_iam_member" "cloud_build_roles" {
     "roles/run.invoker",
     "roles/run.developer",
     "roles/iam.serviceAccountUser",
+    "roles/storage.objectViewer",
   ])
   project = var.project_id
   role    = each.key
