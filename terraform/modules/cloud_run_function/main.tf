@@ -7,6 +7,7 @@ resource "google_storage_bucket" "default" {
   location                    = var.bucket_location
   project                     = var.project_id
   uniform_bucket_level_access = true
+  force_destroy               = true
 }
 
 data "archive_file" "default" {
@@ -45,6 +46,7 @@ resource "google_cloudfunctions2_function" "default" {
     environment_variables = {
       BACKEND_URL = var.backend_url
     }
+    service_account_email = "${var.service_account_name}@${var.project_id}.iam.gserviceaccount.com"
   }
 }
 

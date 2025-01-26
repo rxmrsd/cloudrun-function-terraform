@@ -74,3 +74,8 @@ variable "backend_url" {
   description = "backend url"
   type        = string
 }
+
+variable "service_account_name" {
+  description = "Service Account name"
+  type        = string
+}

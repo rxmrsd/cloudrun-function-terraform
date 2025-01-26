@@ -48,7 +48,7 @@ resource "google_project_iam_member" "cloud_build_roles" {
     "roles/run.invoker",
     "roles/run.developer",
     "roles/iam.serviceAccountUser",
-    "roles/storage.objectViewer",
+    "roles/storage.objectUser",
   ])
   project = var.project_id
   role    = each.key
@@ -83,6 +83,20 @@ module "cloud_build" {
   ]
 }
 
+resource "null_resource" "trigger_build" {
+  provisioner "local-exec" {
+    command = <<-EOT
+      gcloud beta builds triggers run ${var.service_name} \
+      --region=${var.build_region} \
+      --branch=${var.branch_name}
+    EOT
+  }
+
+  depends_on = [
+    module.cloud_build,
+  ]
+}
+
 module "vpc_network" {
   source = "../../modules/vpc_network"
 
@@ -100,7 +114,7 @@ module "backend_service" {
   service_name     = "${var.service_name}-backend"
   project_id       = var.project_id
   region           = var.region
-  image            = "asia-northeast1-docker.pkg.dev/${var.project_id}/${var.service_name}/backend:${var.image_tag}"
+  image            = "asia-northeast1-docker.pkg.dev/${var.project_id}/${var.service_name}/server:${var.image_tag}"
   port             = 8080
   service_account  = "${var.service_account_name}@${var.project_id}.iam.gserviceaccount.com"
   min_instances    = 1
@@ -108,27 +122,38 @@ module "backend_service" {
 
   depends_on = [ 
     module.vpc_network,
-    module.cloud_build,
+    resource.null_resource.trigger_build,
+  ]
+}
+
+resource "google_cloud_run_service_iam_binding" "backend_public_invoker" {
+  service  = module.backend_service.service_name
+  location = var.region
+  role     = "roles/run.invoker"
+  members  = ["allUsers"]
+
+  depends_on = [
+    module.backend_service
   ]
 }
 
 module "cloud_function_v2" {
-  source              = "../../modules/cloud_run_function"
-  project_id          = var.project_id
-  region              = var.region
-  function_name       = var.function_name
+  source               = "../../modules/cloud_run_function"
+  project_id           = var.project_id
+  region               = var.region
+  function_name        = var.function_name
   function_description = "A new function"
-  source_dir          = "../../../functions/"
-  runtime             = "python311"
-  entry_point         = "hello_get"
-  bucket_location     = "US"
-  max_instance_count  = 1
-  available_memory    = "256M"
-  timeout_seconds     = 60
-  iam_role            = "roles/run.invoker"
-  iam_member          = "allUsers"
-  backend_url         = module.backend_service.service_url
-
+  source_dir           = "../../../functions/"
+  runtime              = "python311"
+  entry_point          = "check_backend_health"
+  bucket_location      = "asia-northeast1"
+  max_instance_count   = 1
+  available_memory     = "256M"
+  timeout_seconds      = 60
+  iam_role             = "roles/run.invoker"
+  iam_member           = "allUsers"
+  backend_url          = module.backend_service.service_url
+  service_account_name = var.service_account_name
   depends_on = [ 
     module.backend_service
   ]
@@ -143,6 +168,13 @@ resource "null_resource" "function-1-vpc-egress" {
   }
 
   provisioner "local-exec" {
-    command = "gcloud beta run services update ${var.function_name} --network=${var.network_name} --subnet=${var.direct_subnet_name} --network-tags=function-1 --vpc-egress all-traffic  --region ${var.region}"
+    command = <<-EOT
+      gcloud beta run services update ${var.function_name} \
+      --network=${var.network_name} \
+      --subnet=${var.direct_subnet_name} \
+      --network-tags=function-1 \
+      --vpc-egress all-traffic  \
+      --region ${var.region}
+    EOT
   }
 }
